@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:image_picker/image_picker.dart';
+import 'package:toast/toast.dart';
 
 import 'package:saycheese_mobile/src/pages/login_page.dart';
 import 'package:saycheese_mobile/src/services/server.dart';
+import 'package:saycheese_mobile/src/services/aws-s3.dart';
 import 'package:saycheese_mobile/src/services/share_preferences.dart';
 
 class Customer extends StatefulWidget {
@@ -15,12 +18,14 @@ class Customer extends StatefulWidget {
 class _Customer extends State<Customer> {
   final prefs = new Preferences();
   Server serverInstance = new Server();
-  List _listOptions = ['SC', 'CB', 'BN', 'LP', 'TJ', 'PD', 'OR', 'PO', 'CH'];
-  String ci = "";
-  String issuedPlace = 'SC';
+  AwsS3 awsS3Instance = new AwsS3();
   String name = "";
-  String phone = "";
   String email = "";
+  String password = "";
+  File _image1;
+  File _image2;
+  File _image3;
+  final _picker = ImagePicker();
 
   @override
   void initState() {
@@ -34,59 +39,38 @@ class _Customer extends State<Customer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-            centerTitle: true,
-            title: Text("Registro de clientes"),
-            flexibleSpace: Container(
-              decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: <Color>[
-                    prefs.getColor(prefs.color),
-                    prefs.getSecondaryColor(prefs.color)
-                  ])),
-            )),
-        body: ListView(
-          padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
-          children: <Widget>[
-            _createInputName(),
-            _createInputPhone(),
-            _createInputEmail(),
-            _createInputCi(),
-            _dropDown(),
-            Divider(
-              color: Colors.deepPurple,
-            ),
-            _button(),
-          ],
-        ));
-  }
-
-  Widget _dropDown() {
-    return Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-      Icon(Icons.perm_identity),
-      Text('Lugar de Expedido del CI: '),
-      DropdownButton(
-          value: issuedPlace,
-          items: getListOptions(),
-          onChanged: (opt) {
-            setState(() {
-              issuedPlace = opt;
-            });
-          })
-    ]);
-  }
-
-  List<DropdownMenuItem<String>> getListOptions() {
-    List<DropdownMenuItem<String>> list = new List();
-    _listOptions.forEach((element) {
-      list.add(new DropdownMenuItem(
-        child: Text("$element"),
-        value: element,
-      ));
-    });
-    return list;
+      appBar: AppBar(
+          centerTitle: true,
+          title: Text("Registro de clientes"),
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: <Color>[
+                  prefs.getColor(prefs.color),
+                  prefs.getSecondaryColor(prefs.color)
+                ])),
+          )),
+      body: Builder(
+          builder: (context) => SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                child: Column(
+                  children: <Widget>[
+                    _createInputName(),
+                    _createInputEmail(),
+                    _createInputPassword(),
+                    _showImage(context, 1),
+                    _showImage(context, 2),
+                    _showImage(context, 3),
+                    Divider(
+                      color: Colors.deepPurple,
+                    ),
+                    _button(),
+                  ],
+                ),
+              )),
+    );
   }
 
   Widget _createInputName() {
@@ -101,38 +85,14 @@ class _Customer extends State<Customer> {
             counter: Text("letras: ${name.length}"),
             hintText: "Escribe tu Nombre",
             labelText: "Nombre",
-            helperText: "Name Here",
+            helperText: "Nombre Aqui",
             icon: Icon(
-              Icons.person,
+              Icons.person_outline,
               color: prefs.getColor(prefs.color),
             )),
         onChanged: (val) {
           setState(() {
             name = val;
-          });
-        },
-      ),
-    );
-  }
-
-  Widget _createInputPhone() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: TextField(
-        keyboardType: TextInputType.phone,
-        textCapitalization: TextCapitalization.none,
-        decoration: InputDecoration(
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(20.0)),
-            counter: Text("letras: ${phone.length}"),
-            hintText: "Escribe tu número telefónico",
-            labelText: "Teléfono",
-            helperText: "Phone Here",
-            icon:
-                Icon(Icons.phone_android, color: prefs.getColor(prefs.color))),
-        onChanged: (val) {
-          setState(() {
-            phone = val;
           });
         },
       ),
@@ -151,9 +111,9 @@ class _Customer extends State<Customer> {
             counter: Text("letras: ${email.length}"),
             hintText: "Escribe tu email",
             labelText: "Email",
-            helperText: "Email Here",
-            icon: Icon(Icons.mail, color: prefs.getColor(prefs.color))),
-        onChanged: (val) {
+            helperText: "Email Aqui",
+            icon: Icon(Icons.mail_outline, color: prefs.getColor(prefs.color))),
+        onChanged: (String val) async {
           setState(() {
             email = val;
           });
@@ -162,24 +122,24 @@ class _Customer extends State<Customer> {
     );
   }
 
-  Widget _createInputCi() {
+  Widget _createInputPassword() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: TextField(
-        keyboardType: TextInputType.number,
+        keyboardType: TextInputType.visiblePassword,
+        obscureText: true,
         textCapitalization: TextCapitalization.none,
         decoration: InputDecoration(
             border:
                 OutlineInputBorder(borderRadius: BorderRadius.circular(20.0)),
-            counter: Text("letras: ${ci.length}"),
-            hintText: "Escribe tu CI",
-            labelText: "CI",
-            helperText: "CI Here",
-            icon:
-                Icon(Icons.featured_video, color: prefs.getColor(prefs.color))),
+            counter: Text("letras: ${password.length}"),
+            hintText: "Escribe una contraseña",
+            labelText: "Contraseña",
+            helperText: "Contraseña Aqui",
+            icon: Icon(Icons.lock_outline, color: prefs.getColor(prefs.color))),
         onChanged: (val) {
           setState(() {
-            ci = val;
+            password = val;
           });
         },
       ),
@@ -193,37 +153,45 @@ class _Customer extends State<Customer> {
       splashColor: Colors.grey,
       shape: StadiumBorder(),
       child: Text("Registrar Cuenta"),
-      onPressed: () => _registerOwner(context),
+      onPressed: () {
+        Toast.show("Registrando espere...", context,
+            duration: Toast.LENGTH_LONG, gravity: Toast.CENTER);
+        _registerCustomer(context);
+      },
     );
   }
 
-  _registerOwner(BuildContext context) async {
+  _registerCustomer(BuildContext context) async {
     try {
-      final key = encrypt.Key.fromLength(16);
-      final iv = encrypt.IV.fromLength(8);
-      final encrypter = encrypt.Encrypter(encrypt.Salsa20(key));
+      String profile1 = await awsS3Instance.uploadFile(_image1);
+      print("upload image 1 with id: $profile1");
+      String profile2 = await awsS3Instance.uploadFile(_image2);
+      print("upload image 2 with id: $profile2");
+      String profile3 = await awsS3Instance.uploadFile(_image3);
+      print("upload image 3 with id: $profile3");
 
-      final encrypted = encrypter.encrypt(ci, iv: iv);
-      //final decrypted = encrypter.decrypt(encrypted, iv: iv);
-      print(encrypted.base16);
       var values = {
-        'ci': ci,
-        'issuedPlaced': issuedPlace,
         'name': name,
-        'phone': phone,
         'email': email,
-        'pass': encrypted.base16
+        'password': password,
+        'first_profile': profile1,
+        'second_profile': profile2,
+        'third_profile': profile3
       };
-      Map data =
-          await serverInstance.post("/owner_management/owner_manage/", values);
-      var val = data['owner'];
-      String message = "";
-      if (val) {
-        message = "Owner with CI $ci Saved Successfully!";
-        _showDialog(context, message);
+      Map data = await serverInstance.post("/api/customer", values);
+
+      var customerData = data['data'];
+      print("Status: $customerData");
+
+      if (customerData == 0) {
+        _showDialog(context,
+            "Error: las fotos pertenecen a diferentes personas\nNota: Debes tomarte fotos donde solo tu aparezcas!");
+      } else if (customerData == -1) {
+        _showDialog(context,
+            "Error: ocurrió un problema al registrar, intente nuevamente");
       } else {
-        message = "Owner Register Fail!  Try later!";
-        _showDialog(context, message);
+        _showDialog(context,
+            "Registro Correto\nID: ${customerData['customer_id']}\nNombre: ${customerData['name']}\nEmail: ${customerData['email']} ");
       }
     } catch (e) {
       print(e);
@@ -253,5 +221,123 @@ class _Customer extends State<Customer> {
         );
       },
     );
+  }
+
+  Future _onImageButtonPressed(
+      ImageSource source, BuildContext context, int numberImage) async {
+    try {
+      print("_onImageButtonPressed");
+      var pickedFile = await _picker.getImage(source: source, imageQuality: 70);
+      print("object: " + pickedFile.path);
+      if (numberImage == 1) {
+        if (pickedFile != null) {
+          setState(() {
+            _image1 = File(pickedFile.path);
+          });
+        }
+      } else if (numberImage == 2) {
+        if (pickedFile != null) {
+          setState(() {
+            _image2 = File(pickedFile.path);
+          });
+        }
+      } else {
+        if (pickedFile != null) {
+          setState(() {
+            _image3 = File(pickedFile.path);
+          });
+        }
+      }
+      print("Done");
+    } catch (e) {
+      print("Error in pickImage rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr" + e);
+    }
+  }
+
+  Widget _showImage(BuildContext context, int numberImage) {
+    return GestureDetector(
+      onTap: () {
+        final snackBar = _getSnackBarOptions(numberImage, context);
+        Scaffold.of(context).showSnackBar(snackBar);
+      },
+      child: Padding(
+          padding: EdgeInsets.all(10.0),
+          child: Container(
+            decoration: BoxDecoration(
+                color: prefs.getColor(Colors.black45),
+                borderRadius: BorderRadius.circular(8.0),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(blurRadius: 6.0, offset: Offset(0.0, 5.0))
+                ]),
+            child: _getImage(numberImage),
+          )),
+    );
+  }
+
+  Widget _getImage(int numberImage) {
+    if (numberImage == 1 && _image1 != null)
+      return Image.file(File(_image1.path));
+    if (numberImage == 2 && _image2 != null)
+      return Image.file(File(_image2.path));
+    if (numberImage == 3 && _image3 != null)
+      return Image.file(File(_image3.path));
+
+    return Image(image: AssetImage('assets/add-image.png'));
+  }
+
+  Widget _getSnackBarOptions(int numberImage, BuildContext context) {
+    return SnackBar(
+      backgroundColor: Colors.deepPurple[50],
+      content: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _getButtonCamera(numberImage, context),
+          _getButtonGalery(numberImage, context)
+        ],
+      ),
+    );
+  }
+
+  Widget _getButtonCamera(int numberImage, BuildContext context) {
+    return IconButton(
+      iconSize: 35,
+      icon: Icon(
+        Icons.add_a_photo_outlined,
+        color: Colors.deepPurple,
+      ),
+      onPressed: () async {
+        print("obteniendo imagen $numberImage");
+        await _onImageButtonPressed(ImageSource.camera, context, numberImage);
+      },
+    );
+  }
+
+  Widget _getButtonGalery(int numberImage, BuildContext context) {
+    return IconButton(
+      iconSize: 35,
+      icon: Icon(
+        Icons.image_search_outlined,
+        color: Colors.deepPurple,
+      ),
+      onPressed: () async {
+        print("obteniendo imagen $numberImage");
+        await _onImageButtonPressed(ImageSource.gallery, context, numberImage);
+      },
+    );
+  }
+
+  Future<void> retrieveLostData() async {
+    final LostData response = await _picker.getLostData();
+    if (response.isEmpty) {
+      return;
+    }
+    if (response.file != null) {
+      setState(() {
+        _image1 = File(response.file.path);
+      });
+    } else {
+      print(response.exception.code);
+    }
   }
 }
