@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:saycheese_mobile/src/bloc/provider.dart';
 import 'package:saycheese_mobile/src/pages/home_page.dart';
+import 'package:saycheese_mobile/src/services/server.dart';
 import 'package:saycheese_mobile/src/services/share_preferences.dart';
 import 'package:saycheese_mobile/src/services/stripe_payment.dart';
-import 'package:saycheese_mobile/src/bloc/login_bloc.dart';
 
 class SaleNote extends StatefulWidget {
   static final String routeName = 'sale_note';
@@ -35,6 +35,7 @@ class _SaleNoteState extends State<SaleNote> {
   List shoppingCart = [];
   bool _print = false;
   int quantityPhotosShoppingCart = 0;
+  String _customerEmail;
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _SaleNoteState extends State<SaleNote> {
 
   @override
   Widget build(BuildContext context) {
+    _customerEmail = Provider.of(context).email;
     return Scaffold(
       appBar: AppBar(
           centerTitle: true,
@@ -76,7 +78,7 @@ class _SaleNoteState extends State<SaleNote> {
             ),
           ),
           _getDivider(),
-          _getDetail("Cliente", Provider.of(context).email),
+          _getDetail("Cliente", _customerEmail),
           _getDetail("Evento", this.widget.eventName),
           _getDetail("Coordinador", this.widget.coordinatorName),
           _getDetail("Estudio", this.widget.studioName),
@@ -169,13 +171,32 @@ class _SaleNoteState extends State<SaleNote> {
     stripeClient.init();
     String totalCost = (this.widget.totalCost * 100).floor().toString();
     final response = await stripeClient.paymentWithNewCard(
-        amount: totalCost, currency: 'USD');
+        amount: totalCost, currency: 'BOB');
     if (response.success) {
-      _showDialog(context,
-          "Pago de Bs. ${this.widget.totalCost} realizado exitosamente!\nSe ha enviado un enlace de descarga al correo ${Provider.of(context).email}");
+      await registerSaleNote(context);
     } else {
       _showDialog(context,
           "Pedimos disculpas, a ocurrido un error al realizar el pago.\nIntente nuevamente :)");
+    }
+  }
+
+  registerSaleNote(BuildContext context) async {
+    Server clientServer = new Server();
+    var dataToRegister = {
+      'eventName': this.widget.eventName,
+      'studioName': this.widget.studioName,
+      'totalPrice': this.widget.totalCost,
+      'customerEmail': _customerEmail,
+      'shoppingCart': this.widget.shoppingCart
+    };
+    Map data = await clientServer.post("/api/sale_note", dataToRegister);
+    var saleNoteData = data['data'];
+    if (saleNoteData == -1) {
+      _showDialog(context,
+          "Pedimos disculpas, se ha procesado el pago correctamente pero a ocurrido un error al realizar el registro de compra.\nContactese con nuestros operadores");
+    } else {
+      _showDialog(context,
+          "Compra realizada exitosamente\nMonto cancelado: Bs. ${this.widget.totalCost}\nNro de comprobante: $saleNoteData\nSe ha enviado un enlace de descarga al correo $_customerEmail");
     }
   }
 

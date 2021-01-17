@@ -29,15 +29,13 @@ class StripeClient {
   Future<StripeCustomResponse> paymentWithNewCard(
       {@required String amount, @required String currency}) async {
     try {
-      print("paymentMethod entro: -------------------");
       final paymentMethod = await StripePayment.paymentRequestWithCardForm(
           CardFormPaymentRequest());
-      print("paymentMethod entro1: -------------------");
       final resp = await this._makePayment(
           amount: amount, currency: currency, paymentMethod: paymentMethod);
       return resp;
     } catch (e) {
-      print("paymentMethod: -------------------");
+      print(e.toString());
       return StripeCustomResponse(success: false, message: e.toString());
     }
   }

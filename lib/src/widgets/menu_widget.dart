@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:saycheese_mobile/src/bloc/provider.dart';
-import 'package:saycheese_mobile/src/pages/customer_photography_management/sale_note/checkout_page.dart';
 import 'package:saycheese_mobile/src/pages/home_page.dart';
 
 import 'package:saycheese_mobile/src/pages/setting_page.dart';
