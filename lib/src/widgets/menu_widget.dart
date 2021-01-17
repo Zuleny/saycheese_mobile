@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:saycheese_mobile/src/bloc/provider.dart';
+import 'package:saycheese_mobile/src/pages/customer_photography_management/sale_note/checkout_page.dart';
 import 'package:saycheese_mobile/src/pages/home_page.dart';
 
 import 'package:saycheese_mobile/src/pages/setting_page.dart';
@@ -55,11 +56,10 @@ class MenuWidget extends StatelessWidget {
                 Icons.business_center,
                 color: prefs.getColor(prefs.color),
               ),
-              title: Text('Registrar Producto'),
-              subtitle: Text(
-                  'Registra tu producto aquí, no importa si tienes o no garantía'),
+              title: Text('CheckOut'),
+              subtitle: Text('Pagar'),
               onTap: () {
-                //Navigator.pushNamed(context, ProductPage.routeName);
+                //Navigator.pushNamed(context, CheckOut.routeName);
               }),
           ListTile(
               leading: Icon(

@@ -66,4 +66,29 @@ class Preferences {
   getLoginBackgroundColor() {
     return [Color(0xFFFFE5B5), Color(0xFFE5CFF8), Color(0xFFC6E4F5)];
   }
+
+  List<double> getColorFilter() {
+    return [
+      1,
+      -0.2,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      -0.1,
+      0,
+      0,
+      1.2,
+      1,
+      0.1,
+      0,
+      0,
+      0,
+      1.7,
+      1,
+      0
+    ];
+  }
 }

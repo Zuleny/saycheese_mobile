@@ -1,10 +1,12 @@
+import 'package:saycheese_mobile/src/pages/customer_photography_management/photograph/photo_list%20_event_page.dart';
 import 'package:saycheese_mobile/src/services/server.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:toast/toast.dart';
+import 'package:qrscan/qrscan.dart' as scanner;
 import 'package:saycheese_mobile/src/bloc/provider.dart';
 import 'package:saycheese_mobile/src/services/share_preferences.dart';
 import 'package:saycheese_mobile/src/widgets/menu_widget.dart';
-import 'package:toast/toast.dart';
 
 class HomePage extends StatefulWidget {
   static final String routeName = 'home';
@@ -21,6 +23,7 @@ class _HomePageState extends State<HomePage> {
   List _horses = [];
   List _notifications = [];
   bool stateNotifications = false;
+  String futureString = "";
 
   _getProductList(int ci) async {
     Map data = await http.get("/owner_management/product_manage/owner");
@@ -89,13 +92,39 @@ class _HomePageState extends State<HomePage> {
 
   Widget _createButton(BuildContext context) {
     return FloatingActionButton(
-      child: Icon(Icons.add, size: 35),
-      tooltip: "Solicite Soporte",
+      child: Icon(Icons.qr_code_scanner_outlined, size: 35),
+      tooltip: "Scanear Qr",
       backgroundColor: prefs.getColor(prefs.color),
-      onPressed: () {},
-      /*onPressed: () =>
-            Navigator.pushNamed(context, RequestSupport.routeName)*/
+      onPressed: () => _scanQR(context),
     );
+  }
+
+  _scanQR(BuildContext context) async {
+    try {
+      futureString = await scanner.scan();
+    } catch (e) {
+      futureString = e.toString();
+    }
+    print("futureString: $futureString");
+    if (futureString != null) {
+      print("There is information");
+      if (validateData(futureString)) {
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => PhotoList(futureString)));
+      }
+    } else {
+      print("There isnt information");
+      Navigator.pushReplacementNamed(context, HomePage.routeName);
+    }
+  }
+
+  bool validateData(String data) {
+    try {
+      return true;
+    } catch (e) {
+      print(e);
+      return false;
+    }
   }
 
   Widget _getHomePageBody(BuildContext context, int ci) {

@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -25,24 +24,5 @@ class Server {
     Map res = json.decode(response.body);
     print(res);
     return res;
-  }
-
-  Future postImage(String route, dynamic formData) async {
-    try {
-      route = "$host$route";
-      Dio dio = new Dio();
-      var response = await dio.post(route,
-          data: formData,
-          options: Options(
-            followRedirects: false,
-            validateStatus: (status) {
-              return status < 500;
-            },
-          ));
-      return response;
-    } catch (e) {
-      print("Error request post Image $e");
-      return {"data": false};
-    }
   }
 }
